@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Permitting Application Portal</title>
+  <style>
+    :root{--bg:#f5f7fb;--card:#ffffff;--accent:#2563eb;--muted:#6b7280;--success:#16a34a}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); margin:0; padding:24px; color:#0f172a}
+    .container{max-width:1100px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .brand{font-size:20px;font-weight:700;color:var(--accent)}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+    h2{margin:0 0 8px 0}
+    label{font-weight:600;display:block;margin-top:10px}
+    input[type=text], input[type=number], select, textarea{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #e6eef8;margin-top:6px}
+    input[type=file]{margin-top:8px}
+    .row{display:flex;gap:8px}
+    .btn{background:var(--accent);color:white;padding:10px 12px;border:none;border-radius:8px;cursor:pointer}
+    .btn.secondary{background:#eef2ff;color:var(--accent);border:1px solid #c7d2fe}
+    .muted{color:var(--muted);font-size:13px}
+    ul.docs{padding-left:18px;margin:8px 0}
+    .doc-pill{display:inline-block;background:#f1f5f9;padding:6px 8px;border-radius:999px;margin:6px 6px 0 0}
+    .summary{font-size:14px}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:8px;border-bottom:1px solid #eef2f6;text-align:left}
+    .danger{color:#b91c1c}
+    .success{color:var(--success)}
+    .small{font-size:13px}
+    .flex-between{display:flex;justify-content:space-between;align-items:center}
+    .badge{background:#eef2f2;padding:6px 8px;border-radius:8px;font-weight:600}
+    .hint{font-size:12px;color:#475569}
+    .file-list{margin-top:8px}
+    .file-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:#fbfdff;margin-bottom:6px}
+    .suggestions{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+    .suggestion{padding:10px;border-radius:8px;background:#f8fafc}
+    .foot{margin-top:12px;font-size:13px;color:#475569}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">City Permitting — Application Screen</div>
+      <div class="muted">Create, review & estimate — single-page demo</div>
+    </header>
+
+    <div class="grid">
+      <div>
+        <section class="card" id="step-request">
+          <div class="flex-between"><h2>1. Upload Request</h2><div class="badge">Step 1</div></div>
+          <p class="muted">Enter a short description and upload a primary request document (PDF)</p>
+          <label>Project Title</label>
+          <input id="projectTitle" type="text" placeholder="e.g. 24-unit residential development" />
+          <label>Short Description</label>
+          <textarea id="projectDesc" rows="3" placeholder="Brief description of the project"></textarea>
+          <label>Primary Request Document (PDF)</label>
+          <input id="requestFile" type="file" accept="application/pdf" />
+          <div class="row" style="margin-top:12px">
+            <button class="btn" onclick="saveRequest()">Save Request</button>
+            <button class="btn secondary" onclick="resetAll()">Reset All</button>
+          </div>
+          <div id="requestSaved" class="foot"></div>
+        </section>
+
+        <section class="card" id="step-documents" style="margin-top:14px">
+          <div class="flex-between"><h2>2. Upload Documents</h2><div class="badge">Step 2</div></div>
+          <p class="muted">Upload supporting documents. Missing documents increase expected processing delay.</p>
+
+          <label>Required Documents (toggle if provided)</label>
+          <div id="requiredDocs"></div>
+
+          <label style="margin-top:8px">Upload Documents (multiple)</label>
+          <input id="docsUpload" type="file" multiple />
+          <div class="file-list" id="uploadedDocsList"></div>
+
+          <div style="margin-top:10px">
+            <strong>Estimated Processing Delay:</strong>
+            <div id="delayResult" class="muted small">Not calculated yet</div>
+          </div>
+
+          <div style="margin-top:8px" class="hint">Rules used: Base processing time + penalty per missing required document.</div>
+
+          <div class="row" style="margin-top:10px">
+            <button class="btn" onclick="analyzeDocuments()">Analyze Documents & Calculate Delay</button>
+            <button class="btn secondary" onclick="downloadChecklist()">Download Checklist</button>
+          </div>
+        </section>
+
+        <section class="card" id="step-sitemap" style="margin-top:14px">
+          <div class="flex-between"><h2>3. Site Map & Solutions</h2><div class="badge">Step 3</div></div>
+          <p class="muted">Upload a site map and provide site details to get quick solution suggestions for efficient design.</p>
+          <label>Site Map (PDF / Image)</label>
+          <input id="siteMapFile" type="file" accept="image/*,application/pdf" />
+
+          <div class="row">
+            <div style="flex:1">
+              <label>Site Area (sq ft)</label>
+              <input id="siteArea" type="number" placeholder="e.g. 12000" />
+            </div>
+            <div style="flex:1}">
+              <label>Constraints</label>
+              <select id="siteConstraint">
+                <option value="none">None</option>
+                <option value="steep_slope">Steep slope</option>
+                <option value="wetland">Wetland / Floodplain</option>
+                <option value="tight_setbacks">Tight setbacks</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <button class="btn" onclick="suggestSolutions()">Suggest Solutions</button>
+            <button class="btn secondary" onclick="clearSuggestions()">Clear</button>
+          </div>
+
+          <div class="suggestions" id="solutionList"></div>
+        </section>
+
+        <section class="card" id="step-fees" style="margin-top:14px">
+          <div class="flex-between"><h2>4. Estimated Fees</h2><div class="badge">Step 4</div></div>
+          <p class="muted">Fees are calculated from project type, area, and missing document surcharges.</p>
+          <label>Project Type</label>
+          <select id="projectType">
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial</option>
+            <option value="industrial">Industrial</option>
+            <option value="mixed">Mixed Use</option>
+          </select>
+
+          <div class="row" style="margin-top:8px">
+            <div style="flex:1">
+              <label>Base Fee ($)</label>
+              <input id="baseFee" type="number" value="500" />
+            </div>
+            <div style="flex:1">
+              <label>Rate per 1000 sq ft ($)</label>
+              <input id="ratePer1000" type="number" value="300" />
+            </div>
+          </div>
+
+          <div style="margin-top:10px">
+            <button class="btn" onclick="calculateFees()">Calculate Fees</button>
+            <div id="feesResult" class="muted small" style="margin-top:8px"></div>
+          </div>
+        </section>
+
+        <section class="card" id="step-zoning" style="margin-top:14px">
+          <div class="flex-between"><h2>5. Zoning Review</h2><div class="badge">Step 5</div></div>
+          <p class="muted">Quick zoning check — enter city & zoning district. This is a preliminary check only.</p>
+          <label>City</label>
+          <input id="cityName" type="text" placeholder="e.g. Springfield" />
+          <label>Zoning District</label>
+          <input id="zoningDistrict" type="text" placeholder="e.g. R-2 / C-1" />
+          <label>Proposed Use</label>
+          <input id="proposedUse" type="text" placeholder="e.g. Multi-family residential" />
+
+          <div style="margin-top:8px">
+            <button class="btn" onclick="runZoningReview()">Run Zoning Review</button>
+            <div id="zoningResult" class="muted small" style="margin-top:8px"></div>
+          </div>
+        </section>
+
+        <section class="card" id="step-calculations" style="margin-top:14px">
+          <div class="flex-between"><h2>6. Calculations & Budgeting</h2><div class="badge">Step 6</div></div>
+          <p class="muted">Create a quick budget breakdown. Add common line items and modify quantities & unit costs.</p>
+
+          <table id="budgetTable">
+            <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost ($)</th><th>Total ($)</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div style="margin-top:8px" class="row">
+            <input id="lineItemName" type="text" placeholder="Item name e.g. Foundation" style="flex:2" />
+            <input id="lineQty" type="number" placeholder="Qty" style="flex:1" />
+            <input id="lineUnit" type="number" placeholder="Unit cost" style="flex:1" />
+            <button class="btn" style="flex:0.8" onclick="addBudgetLine()">Add</button>
+          </div>
+          <div style="margin-top:10px" class="summary"><strong>Budget Total: $<span id="budgetTotal">0</span></strong></div>
+        </section>
+
+        <section class="card" id="step-inspections" style="margin-top:14px">
+          <div class="flex-between"><h2>7. Upload Inspection Results</h2><div class="badge">Step 7</div></div>
+          <p class="muted">Upload inspection reports and set the inspection status.</p>
+          <label>Inspection File (PDF)</label>
+          <input id="inspectFile" type="file" accept="application/pdf" />
+          <label style="margin-top:8px">Inspection Status</label>
+          <select id="inspectStatus">
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="conditional">Conditional</option>
+          </select>
+          <div style="margin-top:10px" class="row">
+            <button class="btn" onclick="saveInspection()">Save Inspection</button>
+            <button class="btn secondary" onclick="clearInspection()">Clear</button>
+          </div>
+
+          <div id="inspectionSaved" class="foot"></div>
+        </section>
+
+        <div style="height:28px"></div>
+      </div>
+
+      <aside>
+        <div class="card">
+          <h2>Application Summary</h2>
+          <div id="summaryBox" class="summary">No data yet — save each step to build a summary.</div>
+          <div style="margin-top:10px" class="row">
+            <button class="btn" onclick="exportJSON()">Export Summary (JSON)</button>
+            <button class="btn secondary" onclick="printSummary()">Print</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3>Delays & Rules</h3>
+          <p class="muted small">Base processing: <strong id="baseDays">10</strong> business days. Missing doc penalty: <strong id="penaltyDays">5</strong> days each.</p>
+          <h3 style="margin-top:10px">Quick Actions</h3>
+          <div class="row">
+            <button class="btn" onclick="analyzeDocuments()">Recalc Delay</button>
+            <button class="btn secondary" onclick="calculateFees()">Recalc Fees</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3>Notes</h3>
+          <p class="muted small">This is a demo HTML screen. Zoning checks are illustrative; integrate with city APIs or planners for authoritative decisions.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // --- Data / Defaults ---
+    const requiredDocsList = [
+      'Site Plan', 'Architectural Drawings', 'Structural Calculations', 'Soils Report', 'Erosion & Sediment Control Plan', 'Ownership Proof', 'Application Fee Receipt'
+    ];
+    const baseProcessingDays = 10;
+    const penaltyPerMissing = 5; // days per missing doc
+
+    // initialize required docs UI
+    const rd = document.getElementById('requiredDocs');
+    requiredDocsList.forEach(name=>{
+      const id = 'req_'+name.replace(/\s+/g,'_');
+      const el = document.createElement('div');
+      el.innerHTML = `<label class="doc-pill"><input type=checkbox id="${id}" style="margin-right:8px" /> ${name}</label>`;
+      rd.appendChild(el);
+    });
+
+    // uploaded docs tracking
+    const uploadedDocs = [];
+    document.getElementById('docsUpload').addEventListener('change', (e)=>{
+      const files = Array.from(e.target.files);
+      files.forEach(f=>{
+        uploadedDocs.push({name:f.name,size:f.size});
+      });
+      renderUploadedDocs();
+    });
+
+    function renderUploadedDocs(){
+      const list = document.getElementById('uploadedDocsList'); list.innerHTML='';
+      uploadedDocs.forEach((f,idx)=>{
+        const div = document.createElement('div'); div.className='file-item';
+        div.innerHTML = `<div>${f.name}</div><div><button class='btn secondary' onclick='removeDoc(${idx})'>Remove</button></div>`;
+        list.appendChild(div);
+      });
+    }
+    function removeDoc(i){ uploadedDocs.splice(i,1); renderUploadedDocs(); }
+
+    function analyzeDocuments(){
+      // mark required docs as present if uploaded doc name contains keywords
+      const missing = [];
+      requiredDocsList.forEach(name=>{
+        const found = uploadedDocs.some(f=>f.name.toLowerCase().includes(name.split(' ')[0].toLowerCase()));
+        const checkbox = document.getElementById('req_'+name.replace(/\s+/g,'_'));
+        if(found){ checkbox.checked = true; } else { if(!checkbox.checked) missing.push(name); }
+      });
+      // also allow user-ticked boxes: consider them provided
+      const userProvidedMissing = [];
+      requiredDocsList.forEach(name=>{
+        const checkbox = document.getElementById('req_'+name.replace(/\s+/g,'_'));
+        if(!checkbox.checked) userProvidedMissing.push(name);
+      });
+      const totalMissing = userProvidedMissing.length;
+      const delay = baseProcessingDays + (penaltyPerMissing * totalMissing);
+      document.getElementById('delayResult').innerHTML = `${delay} business days (Base ${baseProcessingDays} + ${penaltyPerMissing} × ${totalMissing} missing docs)`;
+      document.getElementById('baseDays').innerText = baseProcessingDays;
+      document.getElementById('penaltyDays').innerText = penaltyPerMissing;
+      updateSummary();
+    }
+
+    function suggestSolutions(){
+      const area = Number(document.getElementById('siteArea').value) || 0;
+      const constraint = document.getElementById('siteConstraint').value;
+      const list = document.getElementById('solutionList'); list.innerHTML='';
+      const suggestions = [];
+      if(area <= 0){ suggestions.push('Enter site area to get tailored suggestions (sq ft).'); }
+      if(area > 0 && area < 5000) suggestions.push('Small-site strategies: compact footprint, stacked units, shared parking, prefabricated construction to reduce schedule.');
+      if(area >=5000 && area <20000) suggestions.push('Medium-site strategies: cluster buildings to preserve open space, modular approach for fast build, phased permitting for early work.');
+      if(area >=20000) suggestions.push('Large-site strategies: master-planned layout, dedicated utility corridors, on-site stormwater management and phased permitting per parcel.');
+      if(constraint==='steep_slope') suggestions.push('Steep slope: consider terraced design, retaining walls with engineered solutions, minimize earthwork to reduce costs.');
+      if(constraint==='wetland') suggestions.push('Wetland/Floodplain: raise finished floor, use permeable surfaces, coordinate with environmental permitting early.');
+      if(constraint==='tight_setbacks') suggestions.push('Tight setbacks: propose variances or redesign building envelope; consider cantilevered elements or shared walls.');
+      suggestions.forEach(s=>{
+        const d=document.createElement('div');d.className='suggestion';d.textContent=s;list.appendChild(d);
+      });
+      updateSummary();
+    }
+    function clearSuggestions(){ document.getElementById('solutionList').innerHTML=''; document.getElementById('siteMapFile').value=''; }
+
+    function calculateFees(){
+      const base = Number(document.getElementById('baseFee').value)||0;
+      const rate = Number(document.getElementById('ratePer1000').value)||0;
+      const area = Number(document.getElementById('siteArea').value)||0;
+      const missingDocs = requiredDocsList.filter(n=>!document.getElementById('req_'+n.replace(/\s+/g,'_')).checked).length;
+      const missingSurcharge = missingDocs * 100; // $100 per missing doc
+      const fees = base + (rate * (area/1000)) + missingSurcharge;
+      document.getElementById('feesResult').innerHTML = `Estimated Fees: $${fees.toFixed(2)} (including $${missingSurcharge} missing-doc surcharge)`;
+      updateSummary();
+    }
+
+    // Zoning review: illustrative rules database (sample)
+    const zoningSamples = {
+      'Springfield': {
+        'R-2': {maxHeight:35, minSetback:20, allowed:['single-family','duplex','multi-family']},
+        'C-1': {maxHeight:45, minSetback:10, allowed:['retail','office']}
+      },
+      'Greenville':{
+        'R-1':{maxHeight:30,minSetback:25,allowed:['single-family']}
+      }
+    };
+    function runZoningReview(){
+      const city = document.getElementById('cityName').value.trim();
+      const zone = document.getElementById('zoningDistrict').value.trim();
+      const use = document.getElementById('proposedUse').value.trim().toLowerCase();
+      const out = document.getElementById('zoningResult'); out.innerHTML='';
+      if(!city || !zone || !use){ out.innerHTML = '<span class="danger">Please provide city, zoning district and proposed use.</span>'; return; }
+      // sample lookup
+      const cityData = zoningSamples[city];
+      if(cityData && cityData[zone]){
+        const rules = cityData[zone];
+        const allowed = rules.allowed.some(a=>use.includes(a));
+        out.innerHTML = `<div>Max Height: ${rules.maxHeight} ft. Min Setback: ${rules.minSetback} ft. Allowed uses: ${rules.allowed.join(', ')}.</div>` +
+          (allowed? `<div class="success">Proposed use appears to be allowed in ${zone}.</div>` : `<div class="danger">Proposed use may not be allowed — consider variance or alternative zoning.</div>`);
+      } else {
+        out.innerHTML = '<div class="muted">No sample zoning data for this city/zone in demo. Integrate with official zoning API or upload your city zoning rules for automated checks.</div>';
+      }
+      updateSummary();
+    }
+
+    // Budget table
+    function addBudgetLine(){
+      const name = document.getElementById('lineItemName').value || 'Item';
+      const qty = Number(document.getElementById('lineQty').value) || 1;
+      const unit = Number(document.getElementById('lineUnit').value) || 0;
+      const tbody = document.querySelector('#budgetTable tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${name}</td><td>${qty}</td><td>${unit.toFixed(2)}</td><td>${(qty*unit).toFixed(2)}</td><td><button class='btn secondary' onclick='removeLine(this)'>Remove</button></td>`;
+      tbody.appendChild(tr);
+      document.getElementById('lineItemName').value=''; document.getElementById('lineQty').value=''; document.getElementById('lineUnit').value='';
+      recalcBudget(); updateSummary();
+    }
+    function removeLine(btn){ btn.closest('tr').remove(); recalcBudget(); updateSummary(); }
+    function recalcBudget(){
+      const rows = document.querySelectorAll('#budgetTable tbody tr');
+      let total=0; rows.forEach(r=>{ const t = Number(r.cells[3].innerText)||0; total+=t; });
+      document.getElementById('budgetTotal').innerText = total.toFixed(2);
+    }
+
+    // Inspection
+    function saveInspection(){
+      const f = document.getElementById('inspectFile').files[0];
+      const status = document.getElementById('inspectStatus').value;
+      if(!f){ document.getElementById('inspectionSaved').innerHTML = '<span class="danger">Upload an inspection PDF first</span>'; return; }
+      document.getElementById('inspectionSaved').innerHTML = `<span class='success'>Saved inspection: ${f.name} — status: ${status}</span>`;
+      updateSummary();
+    }
+    function clearInspection(){ document.getElementById('inspectFile').value=''; document.getElementById('inspectStatus').value='passed'; document.getElementById('inspectionSaved').innerHTML=''; }
+
+    // Request
+    function saveRequest(){
+      const title = document.getElementById('projectTitle').value; const desc = document.getElementById('projectDesc').value; const f = document.getElementById('requestFile').files[0];
+      if(!title || !desc || !f){ document.getElementById('requestSaved').innerHTML = '<span class="danger">Please provide title, description and upload request file.</span>'; return; }
+      document.getElementById('requestSaved').innerHTML = `<span class='success'>Request saved: ${title} — ${f.name}</span>`;
+      updateSummary();
+    }
+
+    function resetAll(){ if(confirm('Reset the entire demo?')) location.reload(); }
+
+    // summary & export
+    function updateSummary(){
+      const summary = {};
+      summary.title = document.getElementById('projectTitle').value;
+      summary.description = document.getElementById('projectDesc').value;
+      summary.uploadedDocs = uploadedDocs.map(d=>d.name);
+      summary.missingDocs = requiredDocsList.filter(n=>!document.getElementById('req_'+n.replace(/\s+/g,'_')).checked);
+      summary.estimatedDelay = document.getElementById('delayResult').innerText;
+      summary.siteArea = document.getElementById('siteArea').value;
+      summary.siteConstraint = document.getElementById('siteConstraint').value;
+      summary.suggestions = Array.from(document.querySelectorAll('#solutionList .suggestion')).map(s=>s.innerText);
+      summary.fees = document.getElementById('feesResult').innerText;
+      summary.zoning = document.getElementById('zoningResult').innerText;
+      summary.budgetTotal = document.getElementById('budgetTotal').innerText;
+      const summaryBox = document.getElementById('summaryBox');
+      summaryBox.innerHTML = `<div><strong>${summary.title||'—'}</strong></div><div class='muted small'>${summary.description||'No description'}</div><div style='margin-top:8px'>Missing docs: ${summary.missingDocs.length}</div><div style='margin-top:6px'>Budget: $${summary.budgetTotal}</div>`;
+      window._currentSummary = summary;
+    }
+
+    function exportJSON(){
+      if(!window._currentSummary) updateSummary();
+      const data = JSON.stringify(window._currentSummary||{}, null, 2);
+      const blob = new Blob([data],{type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download = (document.getElementById('projectTitle').value||'application') + '.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function printSummary(){ window.print(); }
+
+    function downloadChecklist(){
+      const text = requiredDocsList.join('\n');
+      const blob = new Blob([text],{type:'text/plain'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='required-docs-checklist.txt'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    // init
+    updateSummary();
+  </script>
+</body>
+</html>

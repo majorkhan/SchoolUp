@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Deposition Assistant</title>
+    
+    <style>
+        body {
+            font-family: 'Georgia', serif; /* Professional, readable font */
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        header {
+            background-color: #004d99; /* Dark Blue - Professional/Legal color */
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 5px solid #003366;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 20px auto;
+            gap: 20px;
+        }
+
+        /* Two-column layout */
+        .deposition-collector, .ai-suggestions {
+            flex: 1; /* Each section takes up half the space */
+            padding: 25px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #004d99;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        /* Input Styles */
+        .input-controls, .ai-focus-control {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Include padding in width */
+            resize: vertical;
+            font-family: monospace; /* Easier to read deposition text */
+            font-size: 14px;
+        }
+
+        input[type="file"], input[type="text"] {
+            display: block;
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        /* Buttons */
+        button {
+            background-color: #4CAF50; /* Green button */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #refine-btn {
+            background-color: #f39c12; /* Orange for 'Refine' */
+        }
+
+        #refine-btn:hover {
+            background-color: #e67e22;
+        }
+
+        /* Suggested Questions Styling */
+        .question-group {
+            border-left: 5px solid #004d99;
+            padding-left: 15px;
+            margin-bottom: 20px;
+            background-color: #e6f0ff; /* Light blue background */
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .question-group h4 {
+            color: #003366;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        ol {
+            padding-left: 20px;
+        }
+
+        /* Key Findings List */
+        .key-findings h3 {
+            color: #990000; /* Red for emphasis on key facts */
+        }
+
+        #key-facts-list {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Deposition Text & AI Question Generator</h1>
+    </header>
+
+    <div class="container">
+        <section class="deposition-collector">
+            <h2>1. Deposition Text Input</h2>
+            
+            <div class="input-controls">
+                <label for="transcript-upload">Upload Transcript (PDF/TXT):</label>
+                <input type="file" id="transcript-upload" accept=".pdf, .txt, .docx">
+                
+                <label for="deposition-text">Paste/Type Deposition Text Here:</label>
+                <textarea id="deposition-text" rows="20" placeholder="[Page 1, Line 1] Attorney: Please state your name.
+[Page 1, Line 4] Witness: John Doe.
+...">[Page 1, Line 1] Attorney: Please state your name.
+[Page 1, Line 4] Witness: John Doe.
+[Page 5, Line 10] Attorney: Did you see the email on June 5th?
+[Page 5, Line 11] Witness: No, I don't recall seeing that.
+[Page 12, Line 5] Attorney: Let's look at Exhibit 3. Is that your signature confirming receipt of the June 5th email?
+[Page 12, Line 8] Witness: Yes, it appears to be. I was mistaken earlier.
+</textarea>
+                
+                <button id="analyze-btn" onclick="generateQuestions()">Analyze & Generate Questions</button>
+            </div>
+            
+            <div class="key-findings">
+                <h3>Key Admissions/Facts (AI Summary)</h3>
+                <ul id="key-facts-list">
+                    <li>Witness admitted receiving the June 5th email after initially denying it (P. 12, L. 5-8).</li>
+                    <li>Witness confirmed his signature on Exhibit 3, contradicting prior testimony (P. 12, L. 8).</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="ai-suggestions">
+            <h2>2. AI Suggested Questions</h2>
+            
+            <div class="ai-focus-control">
+                <label for="focus-area">Focus AI on a Topic:</label>
+                <input type="text" id="focus-area" placeholder="e.g., Contradictions on the June 5th meeting">
+                <button id="refine-btn" onclick="refineQuestions()">Refine</button>
+            </div>
+
+            <div id="suggested-questions-output">
+                
+                <div class="question-group">
+                    <h4>Topic: **Contradiction Follow-Up**</h4>
+                    <ol>
+                        <li>You testified on P. 5 that you didn't recall the email. Now you confirm receipt on P. 12. Which statement is true?</li>
+                        <li>What caused you to be mistaken about seeing the email just moments ago?</li>
+                    </ol>
+                </div>
+
+                <div class="question-group">
+                    <h4>Topic: **Implications of Exhibit 3**</h4>
+                    <ol>
+                        <li>Having now confirmed receipt of the June 5th email, what steps did you take after reading it?</li>
+                        <li>Does this email impact any of the other statements you've made today? If so, which ones?</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <button id="export-btn">Export Questions to Outline</button>
+        </section>
+    </div>
+
+</body>
+</html>
